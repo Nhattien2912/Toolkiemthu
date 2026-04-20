@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+
+{% block title %}Reports | TestOps Pro{% endblock %}
+
+{% block content %}
+<section class="page-header" id="report-overview">
+  <div>
+    <span class="eyebrow">Execution Intelligence</span>
+    <h2>{{ selected_run.xml_filename }}</h2>
+    <p>{{ selected_run.timestamp_raw or selected_run.timestamp_display }}</p>
+  </div>
+  <div class="header-actions">
+    <button class="secondary-button" disabled>Email Results</button>
+    <a href="{{ url_for('download_pdf_report', xml_filename=selected_run.xml_filename) }}" class="secondary-button">Export PDF</a>
+    {% if selected_run.html_filename %}
+    <a href="{{ url_for('download_report', html_filename=selected_run.html_filename) }}" class="primary-button">Download Full Report</a>
+    {% endif %}
+    {% if selected_run.excel_filename %}
+    <a href="{{ url_for('download_excel_report', xlsx_filename=selected_run.excel_filename) }}" class="secondary-button">Download Excel Sheet</a>
+    {% endif %}
+    {% if all_runs|length >= 2 %}
+    <a href="{{ url_for('compare', xml_a=all_runs[1].xml_filename, xml_b=selected_run.xml_filename) }}" class="secondary-button">Compare Runs</a>
+    {% endif %}
+  </div>
+</section>
+
+{% if last_run_state %}
+<section class="surface-card run-summary-card">
+  <div class="card-heading">
+    <div>
+      <span class="eyebrow">Last Triggered Execution</span>
+      <h3>{{ last_run_state.suite_label }}</h3>
+    </div>
+    <span class="status-pill run-state-{{ last_run_state.status|replace('_', '-') }}">{{ last_run_state.status }}</span>
+  </div>
+  <p class="insight-copy">{{ last_run_state.message }}</p>
+  {% if last_run_state.command %}
+  <pre class="inline-command">{{ last_run_state.command }}</pre>
+  {% endif %}
+  {% if last_run_state.linked_excel_filename %}
+  <p><a href="{{ url_for('download_excel_report', xlsx_filename=last_run_state.linked_excel_filename) }}">Tải đúng file Excel của lần chạy này</a></p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if integrity_notice %}
+<section class="surface-card notice-card">
+  <strong>Integrity notice</strong>
+  <p>{{ integrity_notice }}</p>
+</section>
+{% endif %}
+
+<section class="surface-card selector-row">
+  <form method="get" action="{{ url_for('reports_latest') }}">
+    <label for="run-selector">Run selector</label>
+    <select id="run-selector" class="run-selector" onchange="if (this.value) window.location.href=this.value;">
+      {% for run in all_runs %}
+      <option value="{{ url_for('reports_by_file', xml_filename=run.xml_filename) }}"
+              {% if run.xml_filename == selected_run.xml_filename %}selected{% endif %}>
+        {{ run.timestamp_display }} | {{ run.tests }} tests | {{ "%.1f"|format(run.pass_rate) }}%
+      </option>
+      {% endfor %}
+    </select>
+  </form>
+</section>
+
+<section class="surface-card selector-row">
+  <form method="get" action="{{ url_for('reports_by_file', xml_filename=selected_run.xml_filename) }}">
+    <label for="case-selector">Detailed case sheet</label>
+    <select id="case-selector" name="case" class="run-selector" onchange="this.form.submit();">
+      {% for testcase in selected_run.testcases %}
+      <option value="{{ loop.index0 }}" {% if loop.index0 == selected_case_index %}selected{% endif %}>
+        {{ testcase.case_id }} | {{ testcase.name }} | {{ testcase.status|upper }}
+      </option>
+      {% endfor %}
+    </select>
+  </form>
+</section>
+
+<section class="card-grid">
+  <article class="surface-card progress-card">
+    <span class="eyebrow">Health Score</span>
+    <div class="health-ring {{ selected_run.health_score.css_class }}"
+         style="--progress: {{ selected_run.health_score.score }}%;">
+      <strong>{{ selected_run.health_score.score }}%</strong>
+    </div>
+  </article>
+  <article class="metric-card">
+    <span>Total Time</span>
+    <strong>{{ selected_run.duration_display }}</strong>
+    <p>{{ "%.2f"|format(selected_run.time_seconds) }}s raw runtime</p>
+  </article>
+  <article class="metric-card">
+    <span>Avg Time / Case</span>
+    <strong>{{ selected_run.avg_time_case_display }}</strong>
+    <p>{% if slowdown %}<span class="warning-badge">Slowdown</span>{% else %}Within baseline{% endif %}</p>
+  </article>
+  <article class="metric-card">
+    <span>Total Cases</span>
+    <strong>{{ selected_run.tests }}</strong>
+    <p>Passed {{ selected_run.passed }}</p>
+  </article>
+  <article class="metric-card">
+    <span>Failed</span>
+    <strong>{{ selected_run.failures + selected_run.errors }}</strong>
+    <p>Skipped {{ selected_run.skipped }}</p>
+  </article>
+</section>
+
+<section class="surface-card">
+  <div class="card-heading">
+    <div>
+      <span class="eyebrow">Critical Failures</span>
+      <h3>Sorted by severity</h3>
+    </div>
+  </div>
+  {% if critical_failures %}
+  <div class="failure-list">
+    {% for case in critical_failures %}
+    <article class="failure-item">
+      <div class="failure-header">
+        <div>
+          <strong>{{ case.case_id }}</strong>
+          <h4>{{ case.name }}</h4>
+        </div>
+        <span class="severity-badge severity-{{ case.severity | lower }}">{{ case.severity }}</span>
+      </div>
+      <p>{{ case.error_snippet or "No error message available." }}</p>
+      <div class="failure-meta">
+        <span>{{ case.module_name }}</span>
+        <span>{{ case.time_display }}</span>
+        <a href="{{ url_for('logs') }}">View Trace Log</a>
+        {% if case.screenshot_relative %}
+        <a href="{{ url_for('report_artifact', artifact_path=case.screenshot_relative) }}" target="_blank" rel="noopener">View Screenshot</a>
+        {% endif %}
+        <a href="{{ url_for('reports_by_file', xml_filename=selected_run.xml_filename, case=case.case_index) }}#case-sheet-anchor">Open Case Sheet</a>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted-copy">No failures or errors were recorded in this run.</p>
+  {% endif %}
+</section>
+
+<section class="panel two-column">
+  <article class="surface-card">
+    <div class="card-heading">
+      <div>
+        <span class="eyebrow">Historical Success</span>
+        <h3>Last 7 valid runs</h3>
+      </div>
+      <span class="trend-chip">{{ historical.trend }}</span>
+    </div>
+    <canvas id="historyChart"
+            data-labels='{{ historical.labels | tojson }}'
+            data-values='{{ historical.pass_rates | tojson }}'
+            data-colors='{{ historical.colors | tojson }}'></canvas>
+  </article>
+
+  <article class="surface-card">
+    <div class="card-heading">
+      <div>
+        <span class="eyebrow">Resource Impact</span>
+        <h3>Operational placeholder</h3>
+      </div>
+    </div>
+    <div class="resource-grid">
+      <div>
+        <span>CPU</span>
+        <strong>{{ resource_cpu }}</strong>
+      </div>
+      <div>
+        <span>DB</span>
+        <strong>{{ resource_db }}</strong>
+      </div>
+      <div>
+        <span>Queue</span>
+        <strong>{{ resource_queue }}</strong>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section class="surface-card">
+  <div class="card-heading">
+    <div>
+      <span class="eyebrow">Module Trend</span>
+      <h3>Pass rate theo module qua cac lan chay</h3>
+    </div>
+  </div>
+  <canvas id="moduleTrendChart"
+          data-labels='{{ module_trend.labels | tojson }}'
+          data-datasets='{{ module_trend.datasets | tojson }}'></canvas>
+</section>
+
+<section class="surface-card" id="case-sheet-anchor">
+  <div class="card-heading">
+    <div>
+      <span class="eyebrow">Automated Insights</span>
+      <h3>Latest run interpretation</h3>
+    </div>
+  </div>
+  <p class="insight-copy">{{ automated_insights }}</p>
+</section>
+
+<section class="surface-card">
+  <div class="card-heading">
+    <div>
+      <span class="eyebrow">Case Sheet</span>
+      <h3>Execution form style</h3>
+    </div>
+    <a href="#report-overview" class="secondary-button">Quay lai tong hop</a>
+  </div>
+
+  <div class="case-sheet">
+    <table class="case-sheet-table">
+      <tr class="case-sheet-title-row">
+        <td colspan="16">
+          <strong>Test Case ID</strong> {{ selected_case_sheet.case_id }}
+          <span class="sheet-spacer"></span>
+          <strong>Test Case Description</strong> {{ selected_case_sheet.description }}
+        </td>
+      </tr>
+      <tr>
+        <td colspan="3" class="sheet-label">Created By</td>
+        <td colspan="3">{{ selected_case_sheet.created_by }}</td>
+        <td colspan="3" class="sheet-label">Reviewed By</td>
+        <td colspan="4">{{ selected_case_sheet.reviewed_by }}</td>
+        <td colspan="1" class="sheet-label">Version</td>
+        <td colspan="2">{{ selected_case_sheet.version }}</td>
+      </tr>
+      <tr>
+        <td colspan="3"></td>
+        <td colspan="2" class="sheet-label">Ky thuat</td>
+        <td colspan="11" class="sheet-technique">{{ selected_case_sheet.technique }}</td>
+      </tr>
+      <tr class="case-sheet-section">
+        <td colspan="16">QA Tester's Log</td>
+      </tr>
+      <tr>
+        <td colspan="3" class="sheet-label">Tester's Name</td>
+        <td colspan="3">{{ selected_case_sheet.tester_name }}</td>
+        <td colspan="3" class="sheet-label">Date Tested</td>
+        <td colspan="4">{{ selected_case_sheet.date_tested }}</td>
+        <td colspan="3" class="{{ selected_case_sheet.overall_class }}"><strong>Test Case Result: {{ selected_case_sheet.overall_result }}</strong></td>
+      </tr>
+      <tr>
+        <td class="sheet-label">S #</td>
+        <td colspan="5" class="sheet-label">Prerequisites:</td>
+        <td class="sheet-label">S #</td>
+        <td colspan="9" class="sheet-label">Test Data</td>
+      </tr>
+      {% set max_pt = [selected_case_sheet.prerequisites|length, selected_case_sheet.test_data|length, 1] | max %}
+      {% for idx in range(max_pt) %}
+      <tr class="{{ 'sheet-alt' if loop.index0 % 2 == 0 else '' }}">
+        <td>{{ idx + 1 if idx < selected_case_sheet.prerequisites|length else '' }}</td>
+        <td colspan="5">{{ selected_case_sheet.prerequisites[idx] if idx < selected_case_sheet.prerequisites|length else '' }}</td>
+        <td>{{ idx + 1 if idx < selected_case_sheet.test_data|length else '' }}</td>
+        <td colspan="9">{{ selected_case_sheet.test_data[idx] if idx < selected_case_sheet.test_data|length else '' }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="case-sheet-section">
+        <td colspan="16">Test Scenario</td>
+      </tr>
+      <tr>
+        <td class="sheet-label">Step #</td>
+        <td colspan="5" class="sheet-label">Step Details</td>
+        <td colspan="3" class="sheet-label">Expected Results</td>
+        <td colspan="3" class="sheet-label">Actual Results</td>
+        <td colspan="4" class="sheet-label">Pass / Fail / Not executed / Suspended</td>
+      </tr>
+      {% for step in selected_case_sheet.step_rows %}
+      <tr class="{{ 'sheet-alt' if loop.index0 % 2 == 0 else '' }}">
+        <td>{{ step.index }}</td>
+        <td colspan="5">{{ step.detail }}</td>
+        <td colspan="3">{{ step.expected }}</td>
+        <td colspan="3">{{ step.actual }}</td>
+        <td colspan="4" class="{{ step.status_class }}"><strong>{{ step.result }}</strong></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</section>
+
+{% if selected_case_sheet.is_failed_case and selected_case_sheet.screenshot_relative %}
+<section class="surface-card">
+  <div class="card-heading">
+    <div>
+      <span class="eyebrow">Failure Screenshot</span>
+      <h3>Hinh anh giao dien tai thoi diem fail</h3>
+    </div>
+    <a href="{{ url_for('report_artifact', artifact_path=selected_case_sheet.screenshot_relative) }}" class="secondary-button" target="_blank" rel="noopener">Mo anh goc</a>
+  </div>
+  <div class="failure-screenshot-frame">
+    <img
+      src="{{ url_for('report_artifact', artifact_path=selected_case_sheet.screenshot_relative) }}"
+      alt="Failure screenshot for {{ selected_case_sheet.case_id }}"
+      class="failure-screenshot-image">
+  </div>
+</section>
+{% endif %}
+
+{% if selected_case_sheet.is_failed_case %}
+<section class="surface-card">
+  <div class="card-heading">
+    <div>
+      <span class="eyebrow">Manual Retest</span>
+      <h3>Các bước tái hiện lỗi để test lại bằng tay</h3>
+    </div>
+  </div>
+  <div class="project-split-grid">
+    <article class="paper-card">
+      <h4>Điều kiện và dữ liệu</h4>
+      <p><strong>Expected tổng quát:</strong> {{ selected_case_sheet.manual_retest_packet.expected_summary }}</p>
+      <p><strong>Actual hiện tại:</strong> {{ selected_case_sheet.manual_retest_packet.actual_summary }}</p>
+      <h5>Điều kiện tiên quyết</h5>
+      <ol class="paper-list numbered">
+        {% for item in selected_case_sheet.manual_retest_packet.prerequisites %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ol>
+      <h5>Dữ liệu kiểm thử</h5>
+      <ol class="paper-list numbered">
+        {% for item in selected_case_sheet.manual_retest_packet.test_data %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ol>
+    </article>
+    <article class="paper-card">
+      <h4>Steps to Reproduce</h4>
+      <div class="manual-step-list">
+        {% for step in selected_case_sheet.manual_retest_packet.steps %}
+        <article class="manual-step-card {% if step.is_failure_point %}manual-step-card-failed{% endif %}">
+          <div class="manual-step-head">
+            <span class="manual-step-index">Bước {{ step.index }}</span>
+            {% if step.is_failure_point %}
+            <span class="severity-badge severity-high">Diem loi</span>
+            {% endif %}
+          </div>
+          <p><strong>Thao tác:</strong> {{ step.action }}</p>
+          <p><strong>Expected:</strong> {{ step.expected }}</p>
+          <p><strong>Actual:</strong> {{ step.actual }}</p>
+          {% if step.is_failure_point %}
+          <p><strong>Dấu mốc lỗi:</strong> Đây là bước cần tái hiện để thấy lỗi xuất hiện.</p>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+    </article>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

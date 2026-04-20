@@ -1,0 +1,10 @@
+selenium
+pytest
+pytest-html
+webdriver-manager
+requests
+flask
+openpyxl
+psutil
+python-docx
+Pillow

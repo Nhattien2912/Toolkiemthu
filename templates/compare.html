@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Compare Runs | TestOps Pro{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Run Comparison</span>
+    <h2>So sánh 2 lần chạy</h2>
+    <p>Tìm regression, case mới fail, case mới pass và chênh lệch collect.</p>
+  </div>
+</section>
+
+<section class="surface-card selector-row">
+  <form method="get" action="{{ url_for('compare') }}" class="compare-form">
+    <div class="compare-pickers">
+      <div>
+        <label for="xml-a">Run A (cũ hơn)</label>
+        <select id="xml-a" name="xml_a" class="run-selector">
+          {% for run in all_runs %}
+          <option value="{{ run.xml_filename }}" {% if run.xml_filename == selected_a %}selected{% endif %}>
+            {{ run.timestamp_display }} | {{ run.xml_filename }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="xml-b">Run B (mới hơn)</label>
+        <select id="xml-b" name="xml_b" class="run-selector">
+          {% for run in all_runs %}
+          <option value="{{ run.xml_filename }}" {% if run.xml_filename == selected_b %}selected{% endif %}>
+            {{ run.timestamp_display }} | {{ run.xml_filename }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button type="submit" class="primary-button">Compare</button>
+    </div>
+  </form>
+</section>
+
+<section class="card-grid compact">
+  <article class="metric-card">
+    <span>Regressions</span>
+    <strong class="metric-danger">{{ comparison.regressions|length }}</strong>
+    <p>Từ pass/skip sang fail</p>
+  </article>
+  <article class="metric-card">
+    <span>Fixed</span>
+    <strong class="metric-ok">{{ comparison.fixed|length }}</strong>
+    <p>Từ fail sang pass</p>
+  </article>
+  <article class="metric-card">
+    <span>Unchanged failures</span>
+    <strong>{{ comparison.unchanged_failures|length }}</strong>
+    <p>Fail ở cả 2 run</p>
+  </article>
+  <article class="metric-card">
+    <span>Added</span>
+    <strong>{{ comparison.added|length }}</strong>
+    <p>Chỉ xuất hiện ở run mới</p>
+  </article>
+  <article class="metric-card">
+    <span>Removed</span>
+    <strong>{{ comparison.removed|length }}</strong>
+    <p>Chỉ có ở run cũ</p>
+  </article>
+</section>
+
+{% for title, rows, css_class in [
+  ('Regressions', comparison.regressions, 'metric-danger'),
+  ('Fixed', comparison.fixed, 'metric-ok'),
+  ('Unchanged failures', comparison.unchanged_failures, ''),
+  ('Added in run B', comparison.added, ''),
+  ('Removed after run A', comparison.removed, '')
+] %}
+<section class="surface-card">
+  <div class="card-heading">
+    <div>
+      <span class="eyebrow">{{ title }}</span>
+      <h3>{{ rows|length }} rows</h3>
+    </div>
+  </div>
+  {% if rows %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Case ID</th>
+          <th>Test name</th>
+          <th>Module</th>
+          <th>Severity</th>
+          <th>Run A</th>
+          <th>Run B</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td><strong>{{ row.case_id }}</strong></td>
+          <td>{{ row.name }}</td>
+          <td>{{ row.module_name }}</td>
+          <td><span class="severity-badge severity-{{ row.severity|lower }}">{{ row.severity }}</span></td>
+          <td>{{ row.status_a }}</td>
+          <td>{{ row.status_b }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted-copy">Không có dữ liệu trong nhóm này.</p>
+  {% endif %}
+</section>
+{% endfor %}
+{% endblock %}

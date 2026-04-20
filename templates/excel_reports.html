@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Excel Reports | TestOps Pro{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Excel Archive</span>
+    <h2>Toàn bộ file Excel trong thư mục reports</h2>
+    <p>Danh sách được sắp xếp theo thời gian tạo, mới nhất ở trên cùng.</p>
+  </div>
+  <div class="header-actions">
+    {% if latest_excel %}
+    <a href="{{ url_for('download_excel_report', xlsx_filename=latest_excel.filename) }}" class="primary-button">Tải file mới nhất</a>
+    {% endif %}
+    <a href="{{ url_for('download_cumulative_excel') }}" class="primary-button">Tải Excel Tích Lũy</a>
+    <a href="{{ url_for('reports_latest') }}" class="secondary-button">Mở report mới nhất</a>
+  </div>
+</section>
+
+<section class="card-grid compact">
+  <article class="metric-card">
+    <span>Tổng file Excel</span>
+    <strong>{{ total_excel_files }}</strong>
+    <p>Trong thư mục <code>reports/</code></p>
+  </article>
+  <article class="metric-card">
+    <span>File có lỗi</span>
+    <strong class="metric-danger">{{ files_with_failures }}</strong>
+    <p>Số workbook có ít nhất 1 case không đạt</p>
+  </article>
+  <article class="metric-card">
+    <span>Tổng case lỗi</span>
+    <strong class="metric-danger">{{ total_failed_cases }}</strong>
+    <p>Tính theo toàn bộ sheet trong các file Excel</p>
+  </article>
+  <article class="metric-card">
+    <span>File mới nhất</span>
+    <strong>{% if latest_excel %}{{ latest_excel.filename }}{% else %}-{% endif %}</strong>
+    <p>{% if latest_excel %}{{ latest_excel.created_at_display }}{% else %}Chưa có file{% endif %}</p>
+  </article>
+</section>
+
+{% if excel_files %}
+<section class="surface-card">
+  <div class="card-heading">
+    <div>
+      <span class="eyebrow">Danh sách file</span>
+      <h3>Báo cáo Excel đã sinh</h3>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>STT</th>
+          <th>Tên file Excel</th>
+          <th>Trạng thái</th>
+          <th>Thời gian tạo</th>
+          <th>Thời gian sửa</th>
+          <th>Dung lượng</th>
+          <th>Tổng case</th>
+          <th>Đạt</th>
+          <th>Không đạt</th>
+          <th>Chưa thực hiện</th>
+          <th>Case lỗi</th>
+          <th>XML tương ứng</th>
+          <th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for excel in excel_files %}
+        <tr class="excel-row excel-row-{{ excel.status }}">
+          <td>{{ loop.index }}</td>
+          <td>
+            <code>{{ excel.filename }}</code>
+          </td>
+          <td>
+            <span class="status-pill excel-status-{{ excel.status }}">{{ excel.status_label }}</span>
+          </td>
+          <td>{{ excel.created_at_display }}</td>
+          <td>{{ excel.modified_at_display }}</td>
+          <td>{{ excel.size_display }}</td>
+          <td><strong>{{ excel.total_cases }}</strong></td>
+          <td><strong class="metric-ok">{{ excel.passed_cases }}</strong></td>
+          <td><strong class="metric-danger metric-big">{% if excel.failed_cases > 0 %}{{ excel.failed_cases }}{% else %}0{% endif %}</strong></td>
+          <td><strong>{{ excel.skipped_cases }}</strong></td>
+          <td>
+            {% if excel.failed_sheet_names %}
+            <div class="case-chip-wrap">
+              {% for case_id in excel.failed_sheet_names[:6] %}
+              <span class="case-chip case-chip-fail">{{ case_id }}</span>
+              {% endfor %}
+            </div>
+            {% else %}
+            <span class="metric-ok">Không có</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if excel.xml_filename %}
+            <a href="{{ url_for('reports_by_file', xml_filename=excel.xml_filename) }}">{{ excel.xml_filename }}</a>
+            {% else %}
+            Không có
+            {% endif %}
+          </td>
+          <td class="excel-actions">
+            <a href="{{ url_for('download_excel_report', xlsx_filename=excel.filename) }}">Tải Excel</a>
+            {% if excel.html_filename %}
+            <a href="{{ url_for('download_report', html_filename=excel.html_filename) }}">Tải HTML</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% else %}
+<section class="surface-card empty-state">
+  <h3>Chưa có file Excel</h3>
+  <p>Hãy chạy pytest hoặc chạy suite từ dashboard để sinh báo cáo Excel.</p>
+</section>
+{% endif %}
+{% endblock %}

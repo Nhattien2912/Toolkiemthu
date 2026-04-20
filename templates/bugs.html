@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Bugs | TestOps Pro{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Bug Tracker</span>
+    <h2>Lịch sử failure đã phát hiện</h2>
+    <p>Danh sách này tổng hợp từ toàn bộ XML report, nhóm theo test case lỗi mới nhất.</p>
+  </div>
+  <div class="header-actions">
+    <a href="{{ url_for('reports_latest') }}" class="secondary-button">Open Latest Report</a>
+    <a href="{{ url_for('project_doc') }}" class="secondary-button">Project Word</a>
+  </div>
+</section>
+
+<section class="card-grid compact">
+  <article class="metric-card">
+    <span>Tổng bug rows</span>
+    <strong>{{ total_bugs }}</strong>
+    <p>Tổng hợp theo case lỗi</p>
+  </article>
+  <article class="metric-card">
+    <span>HIGH</span>
+    <strong class="metric-danger">{{ severity_totals.HIGH }}</strong>
+    <p>Account / Runtime / Source nghiêm trọng</p>
+  </article>
+  <article class="metric-card">
+    <span>MEDIUM</span>
+    <strong>{{ severity_totals.MEDIUM }}</strong>
+    <p>Cart / Checkout</p>
+  </article>
+  <article class="metric-card">
+    <span>LOW</span>
+    <strong>{{ severity_totals.LOW }}</strong>
+    <p>UI / Navigation / Metadata</p>
+  </article>
+</section>
+
+<section class="surface-card">
+  <div class="card-heading">
+    <div>
+      <span class="eyebrow">Failure Inventory</span>
+      <h3>Bug rows theo severity</h3>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Case ID</th>
+          <th>Test name</th>
+          <th>Severity</th>
+          <th>Module</th>
+          <th>Occurrences</th>
+          <th>First seen</th>
+          <th>Last seen</th>
+          <th>Latest error</th>
+          <th>Trace</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for bug in bug_rows %}
+        <tr>
+          <td><strong>{{ bug.case_id }}</strong></td>
+          <td>{{ bug.name }}</td>
+          <td><span class="severity-badge severity-{{ bug.severity|lower }}">{{ bug.severity }}</span></td>
+          <td>{{ bug.module_name }}</td>
+          <td>{{ bug.occurrences }}</td>
+          <td>{{ bug.first_seen }}</td>
+          <td>{{ bug.last_seen }}</td>
+          <td>{{ bug.latest_error or "Khong co message" }}</td>
+          <td>
+            <a href="{{ url_for('reports_by_file', xml_filename=bug.xml_filename, case=bug.case_index) }}#case-sheet-anchor">Open case</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="surface-card">
+  <div class="card-heading">
+    <div>
+      <span class="eyebrow">Retest Guide</span>
+      <h3>Chi tiết test lại thủ công cho từng bug</h3>
+    </div>
+  </div>
+  <div class="bug-card-grid">
+    {% for bug in bug_rows %}
+    <article class="bug-card bug-card-{{ bug.severity|lower }}">
+      <div class="bug-top">
+        <span class="usecase-id">{{ bug.case_id }}</span>
+        <span class="severity-badge severity-{{ bug.severity|lower }}">{{ bug.severity }}</span>
+      </div>
+      <h6>{{ bug.description }}</h6>
+      <p><strong>Module:</strong> {{ bug.module_name }}</p>
+      <p><strong>Actual hiện tại:</strong> {{ bug.manual_retest_packet.actual_summary }}</p>
+      <p><strong>Điều kiện tiên quyết</strong></p>
+      <ol class="paper-list numbered">
+        {% for item in bug.manual_retest_packet.prerequisites %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ol>
+      <p><strong>Dữ liệu kiểm thử</strong></p>
+      <ol class="paper-list numbered">
+        {% for item in bug.manual_retest_packet.test_data %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ol>
+      <p><strong>Steps to reproduce</strong></p>
+      <ol class="paper-list numbered">
+        {% for step in bug.manual_retest_packet.steps %}
+        <li>
+          <strong>Thao tác:</strong> {{ step.action }}<br>
+          <strong>Expected:</strong> {{ step.expected }}<br>
+          <strong>Actual:</strong> {{ step.actual }}
+          {% if step.is_failure_point %}<br><strong>Điểm phát sinh lỗi:</strong> Đây là bước fail hiện tại.{% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+      <p><strong>Trace:</strong> <a href="{{ url_for('reports_by_file', xml_filename=bug.xml_filename, case=bug.case_index) }}#case-sheet-anchor">Mở case sheet</a></p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

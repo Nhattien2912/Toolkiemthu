@@ -1,0 +1,964 @@
+{% extends "base.html" %}
+
+{% block title %}Project Word | TestOps Pro{% endblock %}
+
+{% block content %}
+<div class="project-doc-view">
+  <section class="project-hero">
+    <div class="project-cover-card">
+      {% for line in project_doc.institution %}
+      <p class="cover-line">{{ line }}</p>
+      {% endfor %}
+      <h2>{{ project_doc.title }}</h2>
+      <div class="cover-meta">
+        <span><strong>Môn học:</strong> {{ project_doc.course }}</span>
+        <span><strong>Mã lớp:</strong> {{ project_doc.class_code }}</span>
+        <span><strong>Giảng viên:</strong> {{ project_doc.instructor }}</span>
+        <span><strong>{{ project_doc.semester }}</strong></span>
+      </div>
+      <p class="cover-city">{{ project_doc.city_line }}</p>
+    </div>
+
+    <div class="project-control-card">
+      <span class="eyebrow">Quick Run</span>
+      <h3>Nút riêng theo đồ án</h3>
+      <p>Chạy trực tiếp theo đúng module và use case trong báo cáo Word.</p>
+      <p class="run-mode-note">Suite chạy từ giao diện này sẽ dùng Chrome headless trong nền, không bật cửa sổ trình duyệt ra ngoài máy.</p>
+
+      <div class="quick-run-grid">
+        {% for suite in quick_suites %}
+        <button type="button"
+                class="primary-button quick-run-button {% if suite.id in ['reg-12-suite', 'excel-62-suite', 'tien-test-cases', 'custom-extra-cases', 'risk-cases', 'tc-37-base-suite', 'tc-62-suite', 'tc-80-suite', 'tc-117-suite', 'project-all', 'project-max'] %}quick-run-wide{% endif %}"
+                data-suite-id="{{ suite.id }}"
+                data-suite-label="{{ suite.label }}"
+                data-suite-method="{{ suite.method }}"
+                data-suite-description="{{ suite.description }}"
+                data-command="{{ suite.command_preview }}"
+                {% if suite_running %}disabled{% endif %}>
+          {{ suite.label }}
+        </button>
+        {% endfor %}
+      </div>
+
+      <div id="selected-suite-meta" class="suite-meta-strip">
+        <span>Chọn nút để chạy đúng chức năng trong báo cáo.</span>
+      </div>
+      <pre id="selected-suite-command" class="inline-command preview-command">{% if last_run_state and (last_run_state.command or last_run_state.command_preview) %}{{ last_run_state.command or last_run_state.command_preview }}{% else %}Thong bao lenh chay se hien tai day sau khi ban chon module hoac use case.{% endif %}</pre>
+      <section class="execution-telemetry compact">
+        <div class="execution-telemetry-head">
+          <div>
+            <span class="eyebrow">Execution Telemetry</span>
+            <h4>Theo doi tien do quick run</h4>
+          </div>
+          <span id="execution-phase" class="trend-chip">Idle</span>
+        </div>
+        <div class="execution-progress-track">
+          <div id="execution-progress-fill" class="execution-progress-fill"></div>
+        </div>
+        <p id="execution-progress-copy" class="muted-copy execution-progress-copy">Chua co du lieu tien do.</p>
+        <div class="execution-grid">
+          <div class="execution-stat">
+            <span>Collected</span>
+            <strong id="execution-total">-</strong>
+          </div>
+          <div class="execution-stat">
+            <span>Hoan thanh</span>
+            <strong id="execution-completed">0</strong>
+          </div>
+          <div class="execution-stat">
+            <span>Passed</span>
+            <strong id="execution-passed">0</strong>
+          </div>
+          <div class="execution-stat">
+            <span>Failed</span>
+            <strong id="execution-failed">0</strong>
+          </div>
+          <div class="execution-stat">
+            <span>Skipped</span>
+            <strong id="execution-skipped">0</strong>
+          </div>
+        </div>
+        <div class="execution-detail-grid">
+          <div class="execution-detail-card">
+            <span>Case hien tai</span>
+            <strong id="execution-current">-</strong>
+          </div>
+          <div class="execution-detail-card">
+            <span>Buoc/hoat dong gan nhat</span>
+            <strong id="execution-step">-</strong>
+          </div>
+          <div class="execution-detail-card wide">
+            <span>Dong log moi nhat</span>
+            <strong id="execution-last">-</strong>
+          </div>
+        </div>
+        <div class="execution-activity-card">
+          <span>5 su kien gan nhat</span>
+          <ul id="execution-activity" class="execution-activity-list"></ul>
+        </div>
+      </section>
+      <div class="run-control-row">
+        <button id="toggle-run-button" type="button" class="secondary-button" {% if not suite_running %}disabled{% endif %}>
+          {% if suite_paused %}Tiep tuc{% else %}Tam dung{% endif %}
+        </button>
+        <span class="muted-copy">Nut nay chi tam dung hoac tiep tuc suite dang chay tu web.</span>
+      </div>
+      {% if last_run_state and last_run_state.linked_excel_filename %}
+      <p>
+        <a href="{{ url_for('download_excel_report', xlsx_filename=last_run_state.linked_excel_filename) }}">
+          Tải Excel report của lần chạy gần nhất
+        </a>
+      </p>
+      {% endif %}
+      {% if latest_available_run and latest_available_run.excel_filename %}
+      <p>
+        <a href="{{ url_for('download_excel_report', xlsx_filename=latest_available_run.excel_filename) }}">
+          Tải Excel mới nhất trong hệ thống
+        </a>
+      </p>
+      {% endif %}
+      <div class="cumulative-excel-block">
+        <a href="{{ url_for('download_cumulative_excel') }}" class="primary-button cumulative-excel-btn">
+          Tải Excel Tích Lũy (Tất cả module)
+        </a>
+        <a href="{{ url_for('download_word_report') }}" class="secondary-button">Tải Word tự động</a>
+        {% if cumulative_coverage %}
+        <span class="coverage-badge">
+          {{ cumulative_coverage.executed_cases }}/{{ cumulative_coverage.total_cases }}
+          test case có kết quả thực ({{ cumulative_coverage.coverage_pct }}%)
+        </span>
+        {% endif %}
+      </div>
+      <pre id="live-log-panel" class="log-panel">Quick-run log sẽ hiện ở đây sau khi bấm một nút chức năng.</pre>
+      <span id="run-status-badge" class="status-pill {% if suite_paused %}status-paused{% elif suite_running %}status-running{% else %}status-idle{% endif %}">
+        {% if suite_paused %}Paused{% elif suite_running %}Running{% else %}Idle{% endif %}
+      </span>
+    </div>
+  </section>
+
+  {% if last_run_state %}
+  <section class="surface-card run-summary-card">
+    <div class="card-heading">
+      <div>
+        <span class="eyebrow">Last Triggered From UI</span>
+        <h3>{{ last_run_state.suite_label }}</h3>
+      </div>
+      <span class="status-pill run-state-{{ last_run_state.status|replace('_', '-') }}">{{ last_run_state.status }}</span>
+    </div>
+    <p class="insight-copy">{{ last_run_state.message }}</p>
+    <p class="muted-copy"><strong>Browser:</strong> {{ last_run_state.browser_mode or "Headless background (no popup browser)" }}</p>
+    {% if last_run_state.command %}
+    <pre class="inline-command">{{ last_run_state.command }}</pre>
+    {% endif %}
+    {% if last_run_state.linked_excel_filename %}
+    <p><a href="{{ url_for('download_excel_report', xlsx_filename=last_run_state.linked_excel_filename) }}">Mở Excel report tương ứng</a></p>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <section class="project-section">
+    <div class="paper-header">
+      <span class="eyebrow">Source Chuẩn</span>
+      <h3>Đối chiếu trực tiếp với mã nguồn</h3>
+    </div>
+    <article class="paper-card">
+      <p><strong>Thư mục nguồn:</strong> <code>{{ project_doc.source_project_root }}</code></p>
+      <p>{{ project_doc.source_note }}</p>
+      <ul class="paper-list">
+        {% for item in project_doc.analysis_summary %}
+        <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+
+  <section class="project-section">
+    <div class="paper-header">
+      <span class="eyebrow">Nhóm thực hiện</span>
+      <h3>Danh sách sinh viên</h3>
+    </div>
+    <table class="project-table">
+      <thead>
+        <tr>
+          <th>MSSV</th>
+          <th>Họ và tên</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student in project_doc.students %}
+        <tr>
+          <td>{{ student.student_id }}</td>
+          <td>{{ student.name }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="project-section">
+    <div class="paper-header">
+      <span class="eyebrow">Tổng quan</span>
+      <h3>Mục tiêu và chương mục</h3>
+    </div>
+    <div class="project-split-grid">
+      <article class="paper-card">
+        <h4>Mục tiêu cốt lõi</h4>
+        <ul class="paper-list">
+          {% for goal in project_doc.goals %}
+          <li>{{ goal }}</li>
+          {% endfor %}
+        </ul>
+      </article>
+      <article class="paper-card">
+        <h4>Cấu trúc báo cáo</h4>
+        <ol class="paper-list numbered">
+          {% for chapter in project_doc.chapters %}
+          <li>{{ chapter }}</li>
+          {% endfor %}
+        </ol>
+      </article>
+    </div>
+  </section>
+
+  <section class="project-section">
+    <div class="paper-header">
+      <span class="eyebrow">Lý do & Đối tượng</span>
+      <h3>Lý do chọn đề tài và đối tượng kiểm thử</h3>
+    </div>
+    <div class="project-split-grid">
+      <article class="paper-card">
+        <h4>Lý do chọn đề tài</h4>
+        <ul class="paper-list">
+          {% for item in project_doc.rationale %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </article>
+      <article class="paper-card">
+        <h4>Đối tượng kiểm thử</h4>
+        <p><strong>Tên ứng dụng:</strong> {{ project_doc.test_object.app_name }}</p>
+        <p><strong>Nền tảng:</strong> {{ project_doc.test_object.platform }}</p>
+        <ul class="paper-list">
+          {% for item in project_doc.test_object.environment %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+        <p class="paper-note">{{ project_doc.scope_statement }}</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="project-section">
+    <div class="paper-header">
+      <span class="eyebrow">User Requirements</span>
+      <h3>Yêu cầu chức năng và phi chức năng</h3>
+    </div>
+    <article class="paper-card">
+      <h4>Danh sách yêu cầu chức năng nghiệp vụ</h4>
+      <table class="project-table">
+        <thead>
+          <tr>
+            <th>STT</th>
+            <th>Công việc</th>
+            <th>Loại công việc</th>
+            <th>Quy định / Công thức liên quan</th>
+            <th>Biểu mẫu liên quan</th>
+            <th>Ghi chú</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in project_doc.functional_requirements %}
+          <tr>
+            <td>{{ item.stt }}</td>
+            <td>{{ item.task }}</td>
+            <td>{{ item.type }}</td>
+            <td>{{ item.rules }}</td>
+            <td>{{ item.form }}</td>
+            <td>{{ item.notes }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </article>
+    <article class="paper-card doc-block">
+      <h4>Danh sách yêu cầu phi chức năng</h4>
+      <table class="project-table">
+        <thead>
+          <tr>
+            <th>STT</th>
+            <th>Công việc</th>
+            <th>Loại công việc</th>
+            <th>Quy định / Công thức liên quan</th>
+            <th>Biểu mẫu liên quan</th>
+            <th>Ghi chú</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in project_doc.non_functional_requirements %}
+          <tr>
+            <td>{{ item.stt }}</td>
+            <td>{{ item.task }}</td>
+            <td>{{ item.type }}</td>
+            <td>{{ item.rules }}</td>
+            <td>{{ item.form }}</td>
+            <td>{{ item.notes }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </article>
+  </section>
+
+  <section class="project-section">
+    <div class="paper-header">
+      <span class="eyebrow">Use Case System</span>
+      <h3>Danh sách tác nhân và phạm vi use case</h3>
+    </div>
+    <div class="module-grid">
+      {% for actor in project_doc.actors %}
+      <article class="paper-card">
+        <h4>{{ actor.actor }}</h4>
+        <ul class="paper-list">
+          {% for item in actor.use_cases %}
+          <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="project-section">
+    <div class="paper-header">
+      <span class="eyebrow">Phạm vi kiểm thử</span>
+      <h3>Module trọng tâm</h3>
+    </div>
+    <div class="module-grid">
+      {% for module in project_doc.modules %}
+      <article class="paper-card module-card">
+        <h4>{{ module.title }}</h4>
+        <p class="module-subtitle">{{ module.subtitle }}</p>
+        <p>{{ module.scope }}</p>
+        <button type="button"
+                class="secondary-button quick-run-button"
+                data-suite-id="{{ module.suite_id }}"
+                data-suite-label="{{ module.title }}"
+                data-suite-method="{{ suite_lookup[module.suite_id].method if module.suite_id in suite_lookup else '' }}"
+                data-suite-description="{{ suite_lookup[module.suite_id].description if module.suite_id in suite_lookup else '' }}"
+                data-command="{{ suite_lookup[module.suite_id].command_preview if module.suite_id in suite_lookup else '' }}"
+                {% if suite_running %}disabled{% endif %}>
+          Run {{ module.title }}
+        </button>
+
+        <div class="doc-block">
+          <h5>Tệp nguồn liên quan</h5>
+          <ul class="paper-list">
+            {% for file in module.source_files %}
+            <li><code>{{ file }}</code></li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="doc-block">
+          <h5>Trọng tâm kiểm thử</h5>
+          <ul class="paper-list">
+            {% for item in module.focus_checks %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="doc-block">
+          <h5>Kịch bản test trọng tâm</h5>
+          <div class="detail-test-grid">
+            {% for test in module.detailed_tests %}
+            <article class="detail-test-card">
+              <div class="detail-test-top">
+                <span class="usecase-id">{{ test.case_id }}</span>
+              </div>
+              <h6>{{ test.title }}</h6>
+              <ol class="paper-list numbered">
+                {% for step in test.steps %}
+                <li>{{ step }}</li>
+                {% endfor %}
+              </ol>
+              <p><strong>Kết quả mong đợi:</strong> {{ test.expected }}</p>
+            </article>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="doc-block">
+          <h5>Lỗi hỏng phát hiện từ source</h5>
+          <div class="bug-card-grid">
+            {% for bug in module.detected_bugs %}
+            <article class="bug-card bug-card-{{ bug.severity|lower }}">
+              <div class="bug-top">
+                <span class="usecase-id">{{ bug.bug_id }}</span>
+                <span class="severity-badge severity-{{ bug.severity|lower }}">{{ bug.severity }}</span>
+              </div>
+              <h6>{{ bug.title }}</h6>
+              <p>{{ bug.impact }}</p>
+              <code>{{ bug.evidence }}</code>
+            </article>
+            {% endfor %}
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="project-section">
+    <div class="paper-header">
+      <span class="eyebrow">Bug Findings</span>
+      <h3>Lỗi hỏng trọng yếu phát hiện từ source dự án</h3>
+    </div>
+    <div class="bug-card-grid">
+      {% for bug in project_doc.major_bug_findings %}
+      <article class="bug-card bug-card-{{ bug.severity|lower }}">
+        <div class="bug-top">
+          <span class="usecase-id">{{ bug.bug_id }}</span>
+          <span class="severity-badge severity-{{ bug.severity|lower }}">{{ bug.severity }}</span>
+        </div>
+        <h6>{{ bug.title }}</h6>
+        <p><strong>{{ bug.module }}</strong></p>
+        <p>{{ bug.summary }}</p>
+        <code>{{ bug.evidence }}</code>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="project-section">
+    <div class="paper-header">
+      <span class="eyebrow">Use Case</span>
+      <h3>Đặc tả chức năng theo Word và bước test chi tiết</h3>
+    </div>
+    <div class="usecase-grid">
+      {% for use_case in project_doc.use_cases %}
+      <article class="paper-card usecase-card">
+        <div class="usecase-top">
+          <div>
+            <span class="usecase-id">{{ use_case.use_case_id }}</span>
+            <h4>{{ use_case.title }}</h4>
+          </div>
+          <button type="button"
+                  class="primary-button quick-run-button"
+                  data-suite-id="{{ use_case.suite_id }}"
+                  data-suite-label="{{ use_case.use_case_id }}"
+                  data-suite-method="{{ suite_lookup[use_case.suite_id].method if use_case.suite_id in suite_lookup else '' }}"
+                  data-suite-description="{{ suite_lookup[use_case.suite_id].description if use_case.suite_id in suite_lookup else '' }}"
+                  data-command="{{ suite_lookup[use_case.suite_id].command_preview if use_case.suite_id in suite_lookup else '' }}"
+                  {% if suite_running %}disabled{% endif %}>
+            Run {{ use_case.use_case_id }}
+          </button>
+        </div>
+        <div class="project-facts">
+          <div><strong>Tác nhân:</strong> {{ use_case.actor }}</div>
+          <div><strong>Mô tả:</strong> {{ use_case.description }}</div>
+          <div><strong>Tiền điều kiện:</strong> {{ use_case.precondition }}</div>
+          <div><strong>Hậu điều kiện:</strong> {{ use_case.postcondition }}</div>
+        </div>
+        <div class="project-split-grid">
+          <div>
+            <h5>Luồng chính</h5>
+            <ol class="paper-list numbered">
+              {% for item in use_case.main_flow %}
+              <li>{{ item }}</li>
+              {% endfor %}
+            </ol>
+          </div>
+          <div>
+            <h5>Luồng ngoại lệ</h5>
+            <ul class="paper-list">
+              {% for item in use_case.exception_flow %}
+              <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
+        <div class="doc-block">
+          <h5>Bước test chi tiết</h5>
+          <div class="detail-test-grid">
+            {% for test in use_case.detailed_tests %}
+            <article class="detail-test-card">
+              <div class="detail-test-top">
+                <span class="usecase-id">{{ test.test_id }}</span>
+                <span class="detail-test-technique">{{ test.technique }}</span>
+              </div>
+              <h6>{{ test.title }}</h6>
+              <ol class="paper-list numbered">
+                {% for step in test.steps %}
+                <li>{{ step }}</li>
+                {% endfor %}
+              </ol>
+              <p><strong>Kết quả mong đợi:</strong> {{ test.expected }}</p>
+            </article>
+            {% endfor %}
+          </div>
+        </div>
+
+        {% if use_case.bug_findings %}
+        <div class="doc-block">
+          <h5>Lỗi hỏng gắn trực tiếp với use case này</h5>
+          <div class="bug-card-grid">
+            {% for bug in use_case.bug_findings %}
+            <article class="bug-card bug-card-{{ bug.severity|lower }}">
+              <div class="bug-top">
+                <span class="usecase-id">{{ bug.bug_id }}</span>
+                <span class="severity-badge severity-{{ bug.severity|lower }}">{{ bug.severity }}</span>
+              </div>
+              <h6>{{ bug.title }}</h6>
+              <p><strong>Ảnh hưởng:</strong> {{ bug.impact }}</p>
+              <p><strong>Evidence:</strong> <code>{{ bug.evidence }}</code></p>
+              <ol class="paper-list numbered">
+                {% for step in bug.reproduction_steps %}
+                <li>{{ step }}</li>
+                {% endfor %}
+              </ol>
+            </article>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="project-section">
+    <div class="paper-header">
+      <span class="eyebrow">Test Case Suite</span>
+      <div class="paper-header-actions">
+        <h3>Bộ 117 test case: 37 case nền + 80 case mở rộng không trùng</h3>
+        <div class="paper-header-actions">
+          <button type="button"
+                  class="secondary-button quick-run-button"
+                  data-suite-id="reg-12-suite"
+                  data-suite-label="{{ suite_lookup['reg-12-suite'].label if 'reg-12-suite' in suite_lookup else 'Run 12 Test Care Dau Tien' }}"
+                  data-suite-method="{{ suite_lookup['reg-12-suite'].method if 'reg-12-suite' in suite_lookup else '' }}"
+                  data-suite-description="{{ suite_lookup['reg-12-suite'].description if 'reg-12-suite' in suite_lookup else '' }}"
+                  data-command="{{ suite_lookup['reg-12-suite'].command_preview if 'reg-12-suite' in suite_lookup else '' }}"
+                  {% if suite_running %}disabled{% endif %}>
+            Run REG_01 - REG_12
+          </button>
+          <button type="button"
+                  class="primary-button quick-run-button"
+                  data-suite-id="excel-62-suite"
+                  data-suite-label="{{ suite_lookup['excel-62-suite'].label if 'excel-62-suite' in suite_lookup else 'Run 62 Test Chi Tiết' }}"
+                  data-suite-method="{{ suite_lookup['excel-62-suite'].method if 'excel-62-suite' in suite_lookup else '' }}"
+                  data-suite-description="{{ suite_lookup['excel-62-suite'].description if 'excel-62-suite' in suite_lookup else '' }}"
+                  data-command="{{ suite_lookup['excel-62-suite'].command_preview if 'excel-62-suite' in suite_lookup else '' }}"
+                  {% if suite_running %}disabled{% endif %}>
+            Run 62 Test Chi Tiết
+          </button>
+          <button type="button"
+                  class="primary-button quick-run-button"
+                  data-suite-id="tien-test-cases"
+                  data-suite-label="{{ suite_lookup['tien-test-cases'].label if 'tien-test-cases' in suite_lookup else 'Test Case Của Tiến' }}"
+                  data-suite-method="{{ suite_lookup['tien-test-cases'].method if 'tien-test-cases' in suite_lookup else '' }}"
+                  data-suite-description="{{ suite_lookup['tien-test-cases'].description if 'tien-test-cases' in suite_lookup else '' }}"
+                  data-command="{{ suite_lookup['tien-test-cases'].command_preview if 'tien-test-cases' in suite_lookup else '' }}"
+                  {% if suite_running %}disabled{% endif %}>
+            Test Case Của Tiến
+          </button>
+          <button type="button"
+                  class="primary-button quick-run-button"
+                  data-suite-id="custom-extra-cases"
+                  data-suite-label="{{ suite_lookup['custom-extra-cases'].label if 'custom-extra-cases' in suite_lookup else 'Test Case Mới 66-85' }}"
+                  data-suite-method="{{ suite_lookup['custom-extra-cases'].method if 'custom-extra-cases' in suite_lookup else '' }}"
+                  data-suite-description="{{ suite_lookup['custom-extra-cases'].description if 'custom-extra-cases' in suite_lookup else '' }}"
+                  data-command="{{ suite_lookup['custom-extra-cases'].command_preview if 'custom-extra-cases' in suite_lookup else '' }}"
+                  {% if suite_running %}disabled{% endif %}>
+            Run Test Case Mới 66-85
+          </button>
+          <button type="button"
+                  class="primary-button quick-run-button"
+                  data-suite-id="risk-cases"
+                  data-suite-label="{{ suite_lookup['risk-cases'].label if 'risk-cases' in suite_lookup else 'Run 6 Case Rủi Ro' }}"
+                  data-suite-method="{{ suite_lookup['risk-cases'].method if 'risk-cases' in suite_lookup else '' }}"
+                  data-suite-description="{{ suite_lookup['risk-cases'].description if 'risk-cases' in suite_lookup else '' }}"
+                  data-command="{{ suite_lookup['risk-cases'].command_preview if 'risk-cases' in suite_lookup else '' }}"
+                  {% if suite_running %}disabled{% endif %}>
+            Run 6 Case Rủi Ro
+          </button>
+          <button type="button"
+                  class="primary-button quick-run-button"
+                  data-suite-id="tc-80-suite"
+                  data-suite-label="{{ suite_lookup['tc-80-suite'].label if 'tc-80-suite' in suite_lookup else 'Run 80 Test Care Suite' }}"
+                  data-suite-method="{{ suite_lookup['tc-80-suite'].method if 'tc-80-suite' in suite_lookup else '' }}"
+                  data-suite-description="{{ suite_lookup['tc-80-suite'].description if 'tc-80-suite' in suite_lookup else '' }}"
+                  data-command="{{ suite_lookup['tc-80-suite'].command_preview if 'tc-80-suite' in suite_lookup else '' }}"
+                  {% if suite_running %}disabled{% endif %}>
+            Run 80 Test Case Mở Rộng
+          </button>
+          <button type="button"
+                  class="secondary-button quick-run-button"
+                  data-suite-id="tc-37-base-suite"
+                  data-suite-label="{{ suite_lookup['tc-37-base-suite'].label if 'tc-37-base-suite' in suite_lookup else 'Run 37 Test Case Gốc' }}"
+                  data-suite-method="{{ suite_lookup['tc-37-base-suite'].method if 'tc-37-base-suite' in suite_lookup else '' }}"
+                  data-suite-description="{{ suite_lookup['tc-37-base-suite'].description if 'tc-37-base-suite' in suite_lookup else '' }}"
+                  data-command="{{ suite_lookup['tc-37-base-suite'].command_preview if 'tc-37-base-suite' in suite_lookup else '' }}"
+                  {% if suite_running %}disabled{% endif %}>
+            Run 37 Gốc
+          </button>
+          <button type="button"
+                  class="primary-button quick-run-button"
+                  data-suite-id="tc-117-suite"
+                  data-suite-label="{{ suite_lookup['tc-117-suite'].label if 'tc-117-suite' in suite_lookup else 'Run 117 Test Care Suite' }}"
+                  data-suite-method="{{ suite_lookup['tc-117-suite'].method if 'tc-117-suite' in suite_lookup else '' }}"
+                  data-suite-description="{{ suite_lookup['tc-117-suite'].description if 'tc-117-suite' in suite_lookup else '' }}"
+                  data-command="{{ suite_lookup['tc-117-suite'].command_preview if 'tc-117-suite' in suite_lookup else '' }}"
+                  {% if suite_running %}disabled{% endif %}>
+            Run 117 Tất Cả
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="suite-summary-strip">
+      <span class="suite-summary-badge">Tong {{ project_doc.test_case_summary.total_cases }} test case</span>
+      <span class="suite-summary-badge">Excel 62 chi tiết: {{ project_doc.test_case_summary.excel62_cases }} case</span>
+      <span class="suite-summary-badge">Nền: {{ project_doc.test_case_summary.base_37_cases }} case</span>
+      <span class="suite-summary-badge">Mở rộng: {{ project_doc.test_case_summary.extended_80_cases }} case</span>
+      <span class="suite-summary-badge">Tiến: {{ project_doc.test_case_summary.tien_cases }} case</span>
+      <span class="suite-summary-badge">Mới 66-85: {{ project_doc.test_case_summary.custom_extra_cases }} case</span>
+      <span class="suite-summary-badge">Rủi ro: {{ project_doc.test_case_summary.risk_cases }} case</span>
+      <span class="suite-summary-badge">{{ project_doc.test_case_summary.group_count }} nhom</span>
+      <span class="suite-summary-badge">{{ project_doc.test_case_summary.subgroup_count }} cum chi tiet</span>
+      <span class="suite-summary-badge">Module 1: {{ project_doc.test_case_summary.module_1_cases }} case</span>
+      <span class="suite-summary-badge">Module 2: {{ project_doc.test_case_summary.module_2_cases }} case</span>
+    </div>
+    <p class="paper-note suite-intro-copy">
+      Bảng này gồm đủ Register, Login, Password, Cart và Checkout theo bộ 117 test case.
+      Nút Run 62 Test Chi Tiết chạy theo workbook Excel bạn đưa: <code>{{ project_doc.excel62_workbook_path }}</code>.
+      Trong đó 80 case mở rộng không trùng mã với 37 case nền bạn đưa, có thể chạy riêng bằng nút Run 80 Test Case Mở Rộng.
+      Bộ Test Case Của Tiến chạy tách riêng để tập trung đúng bảng REG_13 đến VCH_08.
+      Bộ Test Case Mới 66-85 chạy riêng cho các case bạn vừa bổ sung, gồm cả những mã trùng nhưng khác nội dung kiểm thử.
+      Bộ 6 Case Rủi Ro tập trung vào lỗi bảo mật và lỗi nghiệp vụ nghiêm trọng để xuất bug report rõ bước tái hiện.
+    </p>
+    <article class="paper-card testcase-suite-card" id="suite-excel-62-cases">
+      <div class="usecase-top">
+        <div>
+          <span class="usecase-id">EXCEL 62 TEST CHI TIẾT</span>
+          <h4>Chạy đúng danh sách testcase trong file Excel chi tiết</h4>
+          <p class="module-subtitle">Suite này dùng nodeid cụ thể để chạy đúng các case trong workbook, không chạy lẫn toàn bộ 117 case. File hiện có {{ project_doc.excel62_test_cases|length }} testcase/sheet có mã hợp lệ.</p>
+        </div>
+        <button type="button"
+                class="primary-button quick-run-button"
+                data-suite-id="excel-62-suite"
+                data-suite-label="{{ suite_lookup['excel-62-suite'].label if 'excel-62-suite' in suite_lookup else 'Run 62 Test Chi Tiết' }}"
+                data-suite-method="{{ suite_lookup['excel-62-suite'].method if 'excel-62-suite' in suite_lookup else '' }}"
+                data-suite-description="{{ suite_lookup['excel-62-suite'].description if 'excel-62-suite' in suite_lookup else '' }}"
+                data-command="{{ suite_lookup['excel-62-suite'].command_preview if 'excel-62-suite' in suite_lookup else '' }}"
+                {% if suite_running %}disabled{% endif %}>
+          Run 62 Test Chi Tiết
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table class="project-table testcase-suite-table">
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Mã TC</th>
+              <th>Mô tả kịch bản kiểm thử</th>
+              <th>Dữ liệu đầu vào / Hành động</th>
+              <th>Kết quả mong đợi</th>
+              <th>Nguồn test tự động</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for case in project_doc.excel62_test_cases %}
+            <tr id="case-excel62-{{ case.code }}">
+              <td>{{ case.stt }}</td>
+              <td><span class="usecase-id">{{ case.code }}</span></td>
+              <td>{{ case.scenario }}</td>
+              <td>{{ case.action }}</td>
+              <td>{{ case.expected }}</td>
+              <td><code>{{ case.nodeid }}</code></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+    <article class="paper-card testcase-suite-card" id="suite-tien-test-cases">
+      <div class="usecase-top">
+        <div>
+          <span class="usecase-id">TEST CASE CỦA TIẾN</span>
+          <h4>28 test case tập trung: validation, login session, cart, checkout, voucher</h4>
+          <p class="module-subtitle">Bộ này không gộp vào 117 case để tránh trùng mã với các testcase hiện có; khi chạy sẽ xuất HTML/XML/Excel riêng theo đúng từng mã.</p>
+        </div>
+        <button type="button"
+                class="primary-button quick-run-button"
+                data-suite-id="tien-test-cases"
+                data-suite-label="{{ suite_lookup['tien-test-cases'].label if 'tien-test-cases' in suite_lookup else 'Test Case Của Tiến' }}"
+                data-suite-method="{{ suite_lookup['tien-test-cases'].method if 'tien-test-cases' in suite_lookup else '' }}"
+                data-suite-description="{{ suite_lookup['tien-test-cases'].description if 'tien-test-cases' in suite_lookup else '' }}"
+                data-command="{{ suite_lookup['tien-test-cases'].command_preview if 'tien-test-cases' in suite_lookup else '' }}"
+                {% if suite_running %}disabled{% endif %}>
+          Run Test Case Của Tiến
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table class="project-table testcase-suite-table">
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Mã TC</th>
+              <th>Mô tả kịch bản kiểm thử</th>
+              <th>Dữ liệu đầu vào / Hành động</th>
+              <th>Kết quả mong đợi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for case in project_doc.tien_test_cases %}
+            <tr id="case-tien-{{ case.code }}">
+              <td>{{ case.stt }}</td>
+              <td><span class="usecase-id">{{ case.code }}</span></td>
+              <td>{{ case.scenario }}</td>
+              <td>{{ case.action }}</td>
+              <td>{{ case.expected }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+    <article class="paper-card testcase-suite-card" id="suite-custom-extra-cases">
+      <div class="usecase-top">
+        <div>
+          <span class="usecase-id">TEST CASE MỚI 66-85</span>
+          <h4>24 test case bổ sung: đăng ký edge-case, giỏ hàng, checkout và API response</h4>
+          <p class="module-subtitle">Các mã trùng như CRT_18 hoặc CHK_23 được giữ nguyên khi xuất Excel, nhưng pytest dùng unique_id để chạy đủ từng dòng không bị ghi đè.</p>
+        </div>
+        <button type="button"
+                class="primary-button quick-run-button"
+                data-suite-id="custom-extra-cases"
+                data-suite-label="{{ suite_lookup['custom-extra-cases'].label if 'custom-extra-cases' in suite_lookup else 'Test Case Mới 66-85' }}"
+                data-suite-method="{{ suite_lookup['custom-extra-cases'].method if 'custom-extra-cases' in suite_lookup else '' }}"
+                data-suite-description="{{ suite_lookup['custom-extra-cases'].description if 'custom-extra-cases' in suite_lookup else '' }}"
+                data-command="{{ suite_lookup['custom-extra-cases'].command_preview if 'custom-extra-cases' in suite_lookup else '' }}"
+                {% if suite_running %}disabled{% endif %}>
+          Run Test Case Mới 66-85
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table class="project-table testcase-suite-table">
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Mã TC</th>
+              <th>Unique ID chạy tự động</th>
+              <th>Mô tả kịch bản kiểm thử</th>
+              <th>Dữ liệu đầu vào / Hành động</th>
+              <th>Kết quả mong đợi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for case in project_doc.custom_extra_test_cases %}
+            <tr id="case-extra-{{ case.unique_id }}">
+              <td>{{ case.stt }}</td>
+              <td><span class="usecase-id">{{ case.code }}</span></td>
+              <td><code>{{ case.unique_id }}</code></td>
+              <td>{{ case.scenario }}</td>
+              <td>{{ case.action }}</td>
+              <td>{{ case.expected }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+    <article class="paper-card testcase-suite-card" id="suite-risk-cases">
+      <div class="usecase-top">
+        <div>
+          <span class="usecase-id">6 CASE RỦI RO</span>
+          <h4>Logout, Voucher trim, Notes cực dài, XSS Checkout, Double-click và Quantity âm</h4>
+          <p class="module-subtitle">Bộ này chạy riêng để tạo report có hình ảnh lỗi, dữ liệu xác thực và sheet Bug_Report phục vụ test lại thủ công.</p>
+        </div>
+        <button type="button"
+                class="primary-button quick-run-button"
+                data-suite-id="risk-cases"
+                data-suite-label="{{ suite_lookup['risk-cases'].label if 'risk-cases' in suite_lookup else 'Run 6 Case Rủi Ro' }}"
+                data-suite-method="{{ suite_lookup['risk-cases'].method if 'risk-cases' in suite_lookup else '' }}"
+                data-suite-description="{{ suite_lookup['risk-cases'].description if 'risk-cases' in suite_lookup else '' }}"
+                data-command="{{ suite_lookup['risk-cases'].command_preview if 'risk-cases' in suite_lookup else '' }}"
+                {% if suite_running %}disabled{% endif %}>
+          Run 6 Case Rủi Ro
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table class="project-table testcase-suite-table">
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Mã TC</th>
+              <th>Unique ID chạy tự động</th>
+              <th>Mô tả kịch bản kiểm thử</th>
+              <th>Dữ liệu đầu vào / Hành động</th>
+              <th>Kết quả mong đợi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for case in project_doc.risk_test_cases %}
+            <tr id="case-risk-{{ case.unique_id }}">
+              <td>{{ case.stt }}</td>
+              <td><span class="usecase-id">{{ case.code }}</span></td>
+              <td><code>{{ case.unique_id }}</code></td>
+              <td>{{ case.scenario }}</td>
+              <td>{{ case.action }}</td>
+              <td>{{ case.expected }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+    <article class="paper-card excel-reference-card">
+      <div>
+        <span class="eyebrow">Excel reference</span>
+        <h4>Doi chieu file Excel goc va bo mo rong 80 test case</h4>
+        <p class="paper-note">{{ project_doc.test_case_excel_reference.note }}</p>
+        <p><code>{{ project_doc.test_case_excel_reference.path }}</code></p>
+      </div>
+      <div class="excel-reference-stats">
+        <span><strong>{{ project_doc.test_case_excel_reference.listed_cases }}</strong> ma TC trong sheet danh sach</span>
+        <span><strong>{{ project_doc.test_case_excel_reference.automation_cases }}</strong> ma TC automation sau mo rong</span>
+        <span><strong>{{ project_doc.test_case_excel_reference.detail_sheets_found }}</strong> sheet chi tiet da co</span>
+        <span><strong>{{ project_doc.test_case_excel_reference.detail_sheets_missing }}</strong> sheet chi tiet can bo sung</span>
+      </div>
+    </article>
+    <div class="tc-subgroup-grid">
+      {% for subgroup in project_doc.test_case_subgroups %}
+      <article class="tc-subgroup-card">
+        <div class="tc-subgroup-top">
+          <div>
+            <span class="usecase-id">{{ subgroup.module }}</span>
+            <h4>{{ subgroup.title }}</h4>
+          </div>
+          <span class="suite-summary-badge">{{ subgroup.cases|length }} TC</span>
+        </div>
+        <p class="module-subtitle">{{ subgroup.focus }}</p>
+        <div class="tc-code-row">
+          {% for code in subgroup.codes %}
+          <a href="#case-{{ code }}">{{ code }}</a>
+          {% endfor %}
+        </div>
+        <button type="button"
+                class="secondary-button quick-run-button tc-subgroup-run"
+                data-suite-id="{{ subgroup.suite_id }}"
+                data-suite-label="{{ suite_lookup[subgroup.suite_id].label if subgroup.suite_id in suite_lookup else subgroup.title }}"
+                data-suite-method="{{ suite_lookup[subgroup.suite_id].method if subgroup.suite_id in suite_lookup else subgroup.technique }}"
+                data-suite-description="{{ suite_lookup[subgroup.suite_id].description if subgroup.suite_id in suite_lookup else subgroup.focus }}"
+                data-command="{{ suite_lookup[subgroup.suite_id].command_preview if subgroup.suite_id in suite_lookup else '' }}"
+                {% if suite_running %}disabled{% endif %}>
+          Run cum nay
+        </button>
+      </article>
+      {% endfor %}
+    </div>
+    <details class="missing-detail-block">
+      <summary>Danh sach sheet chi tiet con thieu trong Excel goc</summary>
+      <div class="tc-code-row">
+        {% for code in project_doc.test_case_excel_reference.missing_detail_codes %}
+        <a href="#case-{{ code }}">{{ code }}</a>
+        {% endfor %}
+      </div>
+    </details>
+    <div class="usecase-grid">
+      {% for suite in project_doc.test_case_suites %}
+      <article class="paper-card testcase-suite-card" id="suite-{{ suite.group_id }}">
+        <div class="usecase-top">
+          <div>
+            <span class="usecase-id">{{ suite.module }}</span>
+            <h4>{{ suite.title }}</h4>
+            <p class="module-subtitle">{{ suite.description }}</p>
+          </div>
+          <button type="button"
+                  class="secondary-button quick-run-button"
+                  data-suite-id="{{ suite.suite_id }}"
+                  data-suite-label="{{ suite.title }}"
+                  data-suite-method="{{ suite_lookup[suite.suite_id].method if suite.suite_id in suite_lookup else '' }}"
+                  data-suite-description="{{ suite_lookup[suite.suite_id].description if suite.suite_id in suite_lookup else '' }}"
+                  data-command="{{ suite_lookup[suite.suite_id].command_preview if suite.suite_id in suite_lookup else '' }}"
+                  {% if suite_running %}disabled{% endif %}>
+            Run {{ suite.title }}
+          </button>
+        </div>
+        <div class="suite-summary-strip compact">
+          <span class="suite-summary-badge">{{ suite.cases|length }} case</span>
+          <span class="suite-summary-badge">{{ suite.module }}</span>
+          <span class="suite-summary-badge">{{ suite.suite_id }}</span>
+        </div>
+        <div class="table-wrap">
+          <table class="project-table testcase-suite-table">
+            <thead>
+              <tr>
+                <th>STT</th>
+                <th>Ma TC</th>
+                <th>Mo ta kich ban kiem thu</th>
+                <th>Du lieu dau vao / Hanh dong</th>
+                <th>Ket qua mong doi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for case in suite.cases %}
+              <tr id="case-{{ case.code }}">
+                <td>{{ case.stt }}</td>
+                <td><span class="usecase-id">{{ case.code }}</span></td>
+                <td>{{ case.scenario }}</td>
+                <td>{{ case.action }}</td>
+                <td>{{ case.expected }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="project-section">
+    <div class="paper-header">
+      <span class="eyebrow">White-box</span>
+      <h3>Khung phân tích hộp trắng</h3>
+    </div>
+    <div class="module-grid">
+      {% for section in project_doc.white_box_sections %}
+      <article class="paper-card">
+        <span class="usecase-id">{{ section.id }}</span>
+        <h4>{{ section.title }}</h4>
+        <p>{{ section.summary }}</p>
+        <p class="paper-note">{{ section.note }}</p>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="project-section">
+    <div class="paper-header">
+      <span class="eyebrow">Bảng phân công</span>
+      <h3>Phân công nhiệm vụ nhóm</h3>
+    </div>
+    <table class="project-table">
+      <thead>
+        <tr>
+          <th>Thành viên</th>
+          <th>Phụ trách</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for task in project_doc.task_assignments %}
+        <tr>
+          <td>{{ task.owner }}</td>
+          <td>{{ task.responsibility }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

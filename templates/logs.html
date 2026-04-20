@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Logs | TestOps Pro{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <div>
+    <span class="eyebrow">Run Logs</span>
+    <h2>Latest dashboard-triggered execution</h2>
+    <p>Live pytest output is persisted to <code>reports/_last_dashboard_run.log</code>.</p>
+  </div>
+  <div class="header-actions">
+    <div class="suite-picker">
+      <label for="suite-selector">Test method / suite</label>
+      <select id="suite-selector" class="run-selector">
+        {% for suite in test_suites %}
+        <option value="{{ suite.id }}"
+                data-label="{{ suite.label }}"
+                data-method="{{ suite.method }}"
+                data-description="{{ suite.description }}"
+                data-command="{{ suite.command_preview }}"
+                {% if suite.id == selected_suite_id %}selected{% endif %}>
+          {{ suite.label }} | {{ suite.method }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <button id="run-suite-button" class="primary-button" {% if suite_running %}disabled{% endif %}>Run Selected Suite</button>
+    <button id="toggle-run-button" class="secondary-button" {% if not suite_running %}disabled{% endif %}>
+      {% if suite_paused %}Resume Suite{% else %}Pause Suite{% endif %}
+    </button>
+    <a href="{{ url_for('dashboard') }}" class="secondary-button">Back to Dashboard</a>
+  </div>
+</section>
+
+{% if last_run_state %}
+<section class="surface-card run-summary-card">
+  <div class="card-heading">
+    <div>
+      <span class="eyebrow">Execution Truth State</span>
+      <h3>{{ last_run_state.suite_label }}</h3>
+    </div>
+    <span class="status-pill run-state-{{ last_run_state.status|replace('_', '-') }}">{{ last_run_state.status }}</span>
+  </div>
+  <p class="insight-copy">{{ last_run_state.message }}</p>
+  {% if last_run_state.command %}
+  <pre class="inline-command">{{ last_run_state.command }}</pre>
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="surface-card log-card">
+  <div class="card-heading">
+    <div>
+      <span class="eyebrow">Captured Output</span>
+      <h3>Stdout stream</h3>
+    </div>
+    <span id="run-status-badge" class="status-pill {% if suite_paused %}status-paused{% elif suite_running %}status-running{% else %}status-idle{% endif %}">
+      {% if suite_paused %}Paused{% elif suite_running %}Running{% else %}Idle{% endif %}
+    </span>
+  </div>
+  <div id="selected-suite-meta" class="suite-meta-strip"></div>
+  <pre id="selected-suite-command" class="inline-command preview-command">{% if last_run_state and last_run_state.command %}{{ last_run_state.command }}{% else %}Suite command preview will appear here.{% endif %}</pre>
+  <section class="execution-telemetry">
+    <div class="execution-telemetry-head">
+      <div>
+        <span class="eyebrow">Execution Telemetry</span>
+        <h4>Chi tiet tien do suite</h4>
+      </div>
+      <span id="execution-phase" class="trend-chip">Idle</span>
+    </div>
+    <div class="execution-progress-track">
+      <div id="execution-progress-fill" class="execution-progress-fill"></div>
+    </div>
+    <p id="execution-progress-copy" class="muted-copy execution-progress-copy">Chua co du lieu tien do.</p>
+    <div class="execution-grid">
+      <div class="execution-stat">
+        <span>Collected</span>
+        <strong id="execution-total">-</strong>
+      </div>
+      <div class="execution-stat">
+        <span>Hoan thanh</span>
+        <strong id="execution-completed">0</strong>
+      </div>
+      <div class="execution-stat">
+        <span>Passed</span>
+        <strong id="execution-passed">0</strong>
+      </div>
+      <div class="execution-stat">
+        <span>Failed</span>
+        <strong id="execution-failed">0</strong>
+      </div>
+      <div class="execution-stat">
+        <span>Skipped</span>
+        <strong id="execution-skipped">0</strong>
+      </div>
+    </div>
+    <div class="execution-detail-grid">
+      <div class="execution-detail-card">
+        <span>Case hien tai</span>
+        <strong id="execution-current">-</strong>
+      </div>
+      <div class="execution-detail-card">
+        <span>Buoc/hoat dong gan nhat</span>
+        <strong id="execution-step">-</strong>
+      </div>
+      <div class="execution-detail-card wide">
+        <span>Dong log moi nhat</span>
+        <strong id="execution-last">-</strong>
+      </div>
+    </div>
+    <div class="execution-activity-card">
+      <span>5 su kien gan nhat</span>
+      <ul id="execution-activity" class="execution-activity-list"></ul>
+    </div>
+  </section>
+  <pre id="live-log-panel" class="log-panel">{{ log_content }}</pre>
+</section>
+{% endblock %}

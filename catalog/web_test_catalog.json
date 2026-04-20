@@ -1,0 +1,279 @@
+{
+  "source": {
+    "title": "180+ Test Cases Example for Web Application Testing",
+    "author": "Vijay",
+    "updated": "2026-02-03",
+    "type": "user_supplied_checklist"
+  },
+  "execution_notes": [
+    "Execute these scenarios with different user roles such as admin users and guest users.",
+    "For web applications, test across approved browsers such as IE, Firefox, Chrome, and Safari.",
+    "Test with different screen resolutions such as 1024x768 and 1280x1024.",
+    "Test on different displays including notebooks, tablets, and mobile phones.",
+    "Test on different operating systems such as Windows, Mac, and Linux."
+  ],
+  "assumptions": [
+    "Forms with various fields",
+    "Child windows",
+    "Database interaction",
+    "Search filter criteria and result grids",
+    "Image upload",
+    "Send email functionality",
+    "Data export functionality"
+  ],
+  "categories": [
+    {
+      "key": "GEN",
+      "title": "General Test Scenarios",
+      "items": [
+        "All mandatory fields should be validated and indicated by an asterisk symbol.",
+        "Validation error messages should be displayed properly and in the correct position.",
+        "All error messages should be displayed in the same CSS style.",
+        "General confirmation messages should use CSS style different from error message style.",
+        "Tooltip text should be meaningful.",
+        "Drop-down fields should have the first entry as blank or text like Select.",
+        "Delete functionality for any record should ask for confirmation.",
+        "Select or deselect all records option should be provided if the page supports record add, delete, or update.",
+        "Amount values should be displayed with the correct currency symbols.",
+        "Default page sorting should be provided.",
+        "Reset button functionality should set default values for all fields.",
+        "All numeric values should be formatted properly.",
+        "Input fields should enforce the max field value and reject values above the limit.",
+        "All input fields should be checked for special characters.",
+        "Field labels should be standard and meaningful.",
+        "Page sorting should work correctly after add, edit, and delete operations.",
+        "Timeout functionality should be checked and timeout values should be configurable.",
+        "Cookies used in the application should be checked.",
+        "Downloadable files should point to the correct file path.",
+        "All resource keys should be configurable instead of hard coded.",
+        "Standard naming conventions should be followed for resource keys.",
+        "Markup for all pages should comply with standards.",
+        "Crashes or unavailable pages should redirect to an error page.",
+        "Text on all pages should be checked for spelling and grammar.",
+        "Numeric fields should reject character input with a proper validation message.",
+        "Negative number handling should be checked where applicable.",
+        "Decimal number fields should be verified.",
+        "Functionality of buttons on all pages should be checked.",
+        "The user should not be able to submit the page twice by pressing submit quickly.",
+        "Divide by zero errors should be handled for calculations.",
+        "Input data with leading and trailing blanks should be handled correctly."
+      ]
+    },
+    {
+      "key": "GUI",
+      "title": "GUI and Usability Test Scenarios",
+      "items": [
+        "All fields on the page should be aligned properly.",
+        "Numeric values should be justified correctly unless specified otherwise.",
+        "Enough space should exist between labels, rows, columns, and error messages.",
+        "Scrollbars should be enabled only when necessary.",
+        "Font size, style, and color should be standard as specified in requirements.",
+        "Description text boxes should support multiple lines.",
+        "Disabled fields should be greyed out and should not accept focus.",
+        "Mouse pointer should change to cursor for input text fields.",
+        "The user should not be able to type into non-editable drop-down select lists.",
+        "Information entered by the user should remain intact after validation errors.",
+        "Proper field labels should be used in error messages.",
+        "Drop-down values should appear in the defined sort order.",
+        "Tab and Shift+Tab order should work properly.",
+        "Default radio options should be preselected on page load.",
+        "Field-specific and page-level help messages should be available.",
+        "Correct fields should be highlighted when errors occur.",
+        "Drop-down list options should be readable and not truncated.",
+        "All buttons should be accessible with keyboard shortcuts where applicable.",
+        "All pages should be checked for broken images.",
+        "All pages should be checked for broken links.",
+        "All pages should have a title.",
+        "Confirmation messages should appear before updates or deletes.",
+        "A busy indicator should be displayed when the application is processing.",
+        "Page text should be left-justified.",
+        "Only one radio option and valid checkbox combinations should be selectable."
+      ]
+    },
+    {
+      "key": "FLT",
+      "title": "Test Scenarios for Filter Criteria",
+      "items": [
+        "The user should be able to filter results using all parameters on the page.",
+        "Refine search functionality should load the search page with all selected parameters.",
+        "If at least one filter is required, submitting without a filter should show a proper error.",
+        "If filter selection is optional, the page should submit with default search criteria.",
+        "Proper validation messages should be displayed for invalid filter values."
+      ]
+    },
+    {
+      "key": "GRID",
+      "title": "Test Scenarios for Result Grid",
+      "items": [
+        "A page loading symbol should be displayed when result loading takes longer than the default time.",
+        "All search parameters should be used to fetch the result data.",
+        "The total number of results should be displayed in the result grid.",
+        "Search criteria used for searching should be displayed in the result grid.",
+        "Result grid values should be sorted by the default column.",
+        "Sorted columns should display a sort icon.",
+        "Result grids should include all specified columns with correct values.",
+        "Ascending and descending sort should work for sortable columns.",
+        "Result grids should have proper column and row spacing.",
+        "Pagination should be enabled when results exceed the default page size.",
+        "Next, Previous, First, and Last pagination should work.",
+        "Duplicate records should not be displayed in the results grid.",
+        "All columns should be visible and horizontal scrollbars should appear if needed.",
+        "Dynamic column values should be verified.",
+        "Totals row should be checked for report grids.",
+        "Totals row should remain correct when pagination is enabled.",
+        "Proper symbols should be used for column values such as percentages.",
+        "Result grid data should be checked when date range filtering is enabled."
+      ]
+    },
+    {
+      "key": "WIN",
+      "title": "Test Scenarios for a Window",
+      "items": [
+        "Default window size should be correct.",
+        "Child window size should be correct.",
+        "Default focus should be set to the correct field.",
+        "Child windows should close when the parent or opener window is closed.",
+        "The user should not be able to use the parent window while a modal child window is open.",
+        "Minimize, maximize, and close functions should work.",
+        "Window resize should work if supported.",
+        "Scrollbars should work properly for parent and child windows.",
+        "Cancel button functionality should work for child windows."
+      ]
+    },
+    {
+      "key": "DB",
+      "title": "Database Testing Test Scenarios",
+      "items": [
+        "Correct data should be saved in the database after successful page submit.",
+        "Values for columns not accepting null should be verified.",
+        "Data integrity should be maintained across tables according to design.",
+        "Index names should follow naming standards.",
+        "Tables should have a primary key column.",
+        "Table columns should have description information where required.",
+        "Database add and update operations should create logs.",
+        "Required table indexes should exist.",
+        "Data should be committed only when the operation completes successfully.",
+        "Data should be rolled back when transactions fail.",
+        "Database names should follow environment naming conventions.",
+        "Logical database names should follow standards.",
+        "Stored procedures should not use reserved prefixes such as sp_.",
+        "Audit columns should be populated correctly.",
+        "Input data should not be truncated while saving.",
+        "Numeric fields should be checked with minimum, maximum, and float values.",
+        "Negative numeric values should be checked for both acceptance and rejection.",
+        "Radio button and drop-down values should be saved correctly.",
+        "Database fields should use the correct data type and length.",
+        "Primary key, foreign key, and other constraints should be implemented correctly.",
+        "Stored procedures and triggers should be tested with sample input data.",
+        "Leading and trailing spaces should be trimmed before committing to the database.",
+        "Null values should not be allowed for primary key columns."
+      ]
+    },
+    {
+      "key": "IMG",
+      "title": "Test Scenarios for Image Upload Functionality",
+      "items": [
+        "Uploaded image path should be checked.",
+        "Image upload and change functionality should work.",
+        "Image upload should work with supported image extensions.",
+        "Image upload should work with filenames containing spaces or allowed special characters.",
+        "Duplicate image name upload should be checked.",
+        "Images larger than the max allowed size should be rejected with an error message.",
+        "Non-image files should be rejected with an error message.",
+        "Specified height and width constraints should be enforced if defined.",
+        "Upload progress bar should appear for large images.",
+        "Cancel button should work during upload.",
+        "File selection dialog should show only supported files where applicable.",
+        "Multiple image upload functionality should work if supported.",
+        "Image quality should remain acceptable after upload.",
+        "Uploaded images should be viewable and usable by the user."
+      ]
+    },
+    {
+      "key": "MAIL",
+      "title": "Test Scenarios for Sending Emails",
+      "items": [
+        "Email templates should use standard CSS.",
+        "Email addresses should be validated before sending.",
+        "Special characters in email body templates should be handled properly.",
+        "Language-specific characters should be handled properly in email bodies.",
+        "Email subject should not be blank.",
+        "Placeholder fields in templates should be replaced with actual values.",
+        "Dynamic report values included in emails should be calculated correctly.",
+        "Sender name should not be blank.",
+        "Emails should be checked in multiple email clients.",
+        "TO, CC, and BCC should work correctly.",
+        "Plain text emails should be checked.",
+        "HTML format emails should be checked.",
+        "Email header and footer should include correct branding and links.",
+        "Emails with attachments should work correctly.",
+        "Sending to single, multiple, and distribution list recipients should work.",
+        "Reply-to address should be correct.",
+        "High volume email sending should be checked."
+      ]
+    },
+    {
+      "key": "XLS",
+      "title": "Test Scenarios for Excel Export Functionality",
+      "items": [
+        "Exported files should use the proper file extension.",
+        "Exported filenames should follow standards and replace timestamps correctly.",
+        "Date formats should be correct in exported files.",
+        "Numeric and currency formatting should match the page display.",
+        "Exported files should contain proper column names.",
+        "Default page sorting should be reflected in the export.",
+        "Exported data should include proper header, footer, date, and page number formatting.",
+        "Displayed page data and exported file data should match.",
+        "Export functionality should work correctly when pagination is enabled.",
+        "Export buttons should show the proper icon for the file type.",
+        "Export functionality should work for very large files.",
+        "Special characters should be exported correctly."
+      ]
+    },
+    {
+      "key": "PERF",
+      "title": "Performance Testing Test Scenarios",
+      "items": [
+        "Page load time should be within acceptable range.",
+        "Pages should load correctly on slow connections.",
+        "Response time for actions should be checked under different load conditions.",
+        "Performance of database stored procedures and triggers should be checked.",
+        "Database query execution time should be checked.",
+        "Load testing of the application should be performed.",
+        "Stress testing of the application should be performed.",
+        "CPU and memory usage under peak load should be monitored."
+      ]
+    },
+    {
+      "key": "SEC",
+      "title": "Security Testing Test Scenarios",
+      "items": [
+        "Check for SQL injection attacks.",
+        "Secure pages should use HTTPS.",
+        "Application crashes should not reveal application or server information.",
+        "Special characters in input should be escaped.",
+        "Error messages should not reveal sensitive information.",
+        "Credentials should be transferred over encrypted channels.",
+        "Password security and policy enforcement should be checked.",
+        "Logout functionality should be checked.",
+        "Brute force attack resistance should be checked.",
+        "Cookie information should be stored in encrypted format.",
+        "Session cookie duration and termination after timeout or logout should be checked.",
+        "Session tokens should be transmitted over secure channels.",
+        "Passwords should not be stored in cookies.",
+        "Denial of Service resistance should be considered.",
+        "Memory leakage should be checked.",
+        "Unauthorized access by manipulating address bar variables should be checked.",
+        "File extension handling should prevent dangerous executables from being uploaded or run.",
+        "Sensitive fields should not use unsafe autocomplete settings.",
+        "File uploads should use file type restrictions and antivirus scanning.",
+        "Directory listing should be prohibited.",
+        "Passwords and sensitive fields should be masked while typing.",
+        "Forgot password should be secured with expiry and verification steps.",
+        "CAPTCHA functionality should be verified.",
+        "Important events should be logged.",
+        "Access privileges should be implemented correctly."
+      ]
+    }
+  ]
+}

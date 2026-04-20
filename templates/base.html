@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}TestOps Pro Dashboard{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <span class="brand-kicker">TESTOPS PRO</span>
+        <h1>Execution Hub</h1>
+        <p>Dark-mode dashboard for Selenium and pytest runs.</p>
+      </div>
+      <nav class="nav-links">
+        <a href="{{ url_for('dashboard') }}" class="{% if request.path == '/dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="{{ url_for('reports_latest') }}" class="{% if request.path.startswith('/reports') %}active{% endif %}">Reports</a>
+        <a href="{{ url_for('bugs') }}" class="{% if request.path == '/bugs' %}active{% endif %}">Bugs</a>
+        <a href="{{ url_for('compare') }}" class="{% if request.path.startswith('/compare') %}active{% endif %}">Compare</a>
+        <a href="{{ url_for('excel_reports') }}" class="{% if request.path == '/excel-reports' %}active{% endif %}">Excel Reports</a>
+        <a href="{{ url_for('logs') }}" class="{% if request.path == '/logs' %}active{% endif %}">Logs</a>
+        <a href="{{ url_for('project_doc') }}" class="{% if request.path == '/project-doc' %}active{% endif %}">Project Word</a>
+      </nav>
+      <div class="sidebar-footnote">
+        <span>Project</span>
+        <strong>Guangli Shop QA</strong>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
